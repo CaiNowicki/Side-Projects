@@ -1,0 +1,32 @@
+boot to the head 
+-miss
+-hit (with sound)
+-crit (with bigger sound)
+-super crit (bigger sound and animation)
+
+endstream
+-cost 100,000 currency
+- several layers of warnings
+-explosion soundtrack, nuclear bomb animation, black screen
+
+game request
+- costs 50-100 currency
+- used for Random Retro nights
+
+call Majora's Mask moon
+- triggers moon animation
+- user's choice of message with animations
+- expensive
+
+coffee
+- free but with cooldown
+- returns link to kofi account
+
+elixir
+- coin flip on "Was that my elixir?" Yes/No funny response
+
+ValhallaBot
+SkaldBot
+
+
+
