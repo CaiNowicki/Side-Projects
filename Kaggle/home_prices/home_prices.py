@@ -45,5 +45,5 @@ print('Random Forest', model.score(X_train_scaled, y_train))
 
 preds = pd.DataFrame(data=model.predict(X_test_scaled), columns = ['SalePrice'])
 preds['Id'] = X_test['Id']
-
+preds = preds.set_index('Id')
 preds.to_csv('predictions.csv')
