@@ -7,13 +7,22 @@ from sklearn.model_selection import RandomizedSearchCV
 import basilica
 import numpy as np
 import random
+from scipy import spatial
+from dotenv import load_dotenv
+import os
 
-c = basilica.Connection('de55be61-2b02-f059-71cd-6982a4c1602f')
+load_dotenv()
+
+
+basilica_api = os.getenv("basilica_api_key")
+c = basilica.Connection(basilica_api)
+print('connected to basilica')
 train = pd.read_csv('train.csv')
 test = pd.read_csv('test.csv')
-
+print('made train/test df')
 
 def wrangle(df):
+    example_disaster_tweet = '#reuters Twelve feared killed in Pakistani air ambulance helicopter crash http://t.co/ShzPyIQok5'
     df['keyword'] = df['keyword'].astype('str')
     df['location'] = df['location'].fillna('none given')
     df['has_link'] = df['text'].apply(lambda x: True if 'http' in x.lower() else False)
@@ -24,10 +33,20 @@ def wrangle(df):
     df['length'] = df['text'].apply(lambda x: len(x))
     df['exclamatory'] = df['text'].apply(lambda x: True if '!' in x.lower() else False)
     df['help'] = df['text'].apply(lambda x: True if 'help' in x.lower() else False)
-    df['embeddings'] = df['text'].apply(lambda x: c.embed_sentence(x))
+    print('wrangled data...')
+    print('getting sentence embeddings...')
+    df['embeddings'] = df['text'].apply(lambda x: c.embed_sentence(x, model='twitter'))
+    print('created sentence embeddings...')
+    for i in range(len(df)-1):
+        distance = spatial.distance.cosine(df['text'].iloc[i], example_disaster_tweet)
+        if distance > 0.5:
+            df['similar_to_real'].iloc[i] = True
+        else:
+            df['similar_to_real'].iloc[i] = False
+
     y = train['target']
     df = train.drop('target', axis=1)
-
+    print('created train and target dataframes...')
     return df, y
 
 
@@ -39,11 +58,13 @@ X_train_encoded = pd.DataFrame(data=X_train_encoded, columns=X_train.columns)
 X_test_encoded = OrdinalEncoder().fit_transform(X=X_test)
 X_test_encoded = pd.DataFrame(data=X_test_encoded, columns=X_train.columns)
 
-
+print('encoded dataframes...')
 # clf = RandomForestClassifier(n_estimators=1200, min_samples_split=2, min_samples_leaf=2, max_features='sqrt',
 #                             max_depth=20, bootstrap=True)
 clf = RandomForestClassifier()
+print('fitting classifier...')
 clf.fit(X_train_encoded, y_train)
+print('classifier fitted...')
 print(clf.score(X_test_encoded, y_test))
 y_pred = clf.predict(X_test_encoded)
 print(classification_report(y_test, y_pred))
