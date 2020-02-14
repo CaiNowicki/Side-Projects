@@ -4,8 +4,11 @@ from sklearn.metrics import classification_report
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import RandomizedSearchCV
+import basilica
 import numpy as np
+import random
 
+c = basilica.Connection('de55be61-2b02-f059-71cd-6982a4c1602f')
 train = pd.read_csv('train.csv')
 test = pd.read_csv('test.csv')
 
@@ -21,8 +24,10 @@ def wrangle(df):
     df['length'] = df['text'].apply(lambda x: len(x))
     df['exclamatory'] = df['text'].apply(lambda x: True if '!' in x.lower() else False)
     df['help'] = df['text'].apply(lambda x: True if 'help' in x.lower() else False)
+    df['embeddings'] = df['text'].apply(lambda x: c.embed_sentence(x))
     y = train['target']
     df = train.drop('target', axis=1)
+
     return df, y
 
 
@@ -38,36 +43,36 @@ X_test_encoded = pd.DataFrame(data=X_test_encoded, columns=X_train.columns)
 # clf = RandomForestClassifier(n_estimators=1200, min_samples_split=2, min_samples_leaf=2, max_features='sqrt',
 #                             max_depth=20, bootstrap=True)
 clf = RandomForestClassifier()
-# clf.fit(X_train_encoded, y_train)
-# print(clf.score(X_test_encoded, y_test))
-# y_pred = clf.predict(X_test_encoded)
-# print(classification_report(y_test, y_pred))
+clf.fit(X_train_encoded, y_train)
+print(clf.score(X_test_encoded, y_test))
+y_pred = clf.predict(X_test_encoded)
+print(classification_report(y_test, y_pred))
 
-# Number of trees in random forest
-n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
-# Number of features to consider at every split
-max_features = ['auto', 'sqrt']
-# Maximum number of levels in tree
-max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-max_depth.append(None)
-# Minimum number of samples required to split a node
-min_samples_split = [2, 5, 10]
-# Minimum number of samples required at each leaf node
-min_samples_leaf = [1, 2, 4]
-# Method of selecting samples for training each tree
-bootstrap = [True, False]
-# Create the random grid
-random_grid = {'n_estimators': n_estimators,
-               'max_features': max_features,
-               'max_depth': max_depth,
-               'min_samples_split': min_samples_split,
-               'min_samples_leaf': min_samples_leaf,
-               'bootstrap': bootstrap}
-# Random search of parameters, using 3 fold cross validation,
-# search across 100 different combinations, and use all available cores
-clf_random = RandomizedSearchCV(estimator = clf, param_distributions = random_grid, n_iter = 100, cv = 3, verbose=2,
-                                random_state=42, n_jobs = -1)
-# Fit the random search model
-clf_random.fit(X_train_encoded, y_train)
-
-print(clf_random.best_params_)
+# # Number of trees in random forest
+# n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+# # Number of features to consider at every split
+# max_features = ['auto', 'sqrt']
+# # Maximum number of levels in tree
+# max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+# max_depth.append(None)
+# # Minimum number of samples required to split a node
+# min_samples_split = [2, 5, 10]
+# # Minimum number of samples required at each leaf node
+# min_samples_leaf = [1, 2, 4]
+# # Method of selecting samples for training each tree
+# bootstrap = [True, False]
+# # Create the random grid
+# random_grid = {'n_estimators': n_estimators,
+#                'max_features': max_features,
+#                'max_depth': max_depth,
+#                'min_samples_split': min_samples_split,
+#                'min_samples_leaf': min_samples_leaf,
+#                'bootstrap': bootstrap}
+# # Random search of parameters, using 3 fold cross validation,
+# # search across 100 different combinations, and use all available cores
+# clf_random = RandomizedSearchCV(estimator = clf, param_distributions = random_grid, n_iter = 100, cv = 3, verbose=2,
+#                                 random_state=42, n_jobs = -1)
+# # Fit the random search model
+# clf_random.fit(X_train_encoded, y_train)
+#
+# print(clf_random.best_params_)
