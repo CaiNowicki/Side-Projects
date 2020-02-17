@@ -22,35 +22,37 @@ test = pd.read_csv('test.csv')
 print('made train/test df')
 
 def wrangle(df):
-    example_disaster_tweet = '#reuters Twelve feared killed in Pakistani air ambulance helicopter crash http://t.co/ShzPyIQok5'
+    example_disaster_tweet = c.embed_sentence('#reuters Twelve feared killed in Pakistani air ambulance helicopter crash http://t.co/ShzPyIQok5')
     df['keyword'] = df['keyword'].astype('str')
     df['location'] = df['location'].fillna('none given')
-    df['has_link'] = df['text'].apply(lambda x: True if 'http' in x.lower() else False)
-    df['has_keyword'] = df['keyword'].apply(lambda x: True if x.isalnum() else False)
-    df['keyword'] = df['keyword'].apply(lambda x: x if x.isalnum() else 'none')
-    df = df.drop('id', axis=1)
+    df['has_link'] = df['text'].apply(lambda x: True if ('http' in x.lower()) or ('.com' in x.lower()) else False)
+    df['has_keyword'] = df['keyword'].apply(lambda x: True if x.lower() is not 'nan' else False)
+    df['keyword'] = df['keyword'].apply(lambda x: x if x.lower() is not 'nan' else 'none')
     df['worldwide'] = df['location'].apply(lambda x: True if 'world' in x.lower() else False)
     df['length'] = df['text'].apply(lambda x: len(x))
     df['exclamatory'] = df['text'].apply(lambda x: True if '!' in x.lower() else False)
+    df['questioning'] = df['text'].apply(lambda x: True if "?" in x.lower() else False)
     df['help'] = df['text'].apply(lambda x: True if 'help' in x.lower() else False)
-    print('wrangled data...')
+    df['hashtag'] = df['text'].apply(lambda x: True if '#' in x else False)
+    print('wrangled data')
     print('getting sentence embeddings...')
     df['embeddings'] = df['text'].apply(lambda x: c.embed_sentence(x, model='twitter'))
-    print('created sentence embeddings...')
+    print('created sentence embeddings')
+    df['similar_to_real'] = False
     for i in range(len(df)-1):
-        distance = spatial.distance.cosine(df['text'].iloc[i], example_disaster_tweet)
+        distance = spatial.distance.cosine(df['embeddings'].iloc[i], example_disaster_tweet)
         if distance > 0.5:
             df['similar_to_real'].iloc[i] = True
-        else:
-            df['similar_to_real'].iloc[i] = False
-
+    df = df.drop('id', axis=1)
     y = train['target']
     df = train.drop('target', axis=1)
-    print('created train and target dataframes...')
+    print('created train and target dataframes')
     return df, y
 
-
 train, y = wrangle(train)
+train.to_csv('tweets_with_embedding.csv')
+train = train.drop('embeddings', axis=1)
+print(train.columns)
 X_train, X_test, y_train, y_test = train_test_split(train, y, test_size=0.33, random_state=42)
 X_train_encoded = OrdinalEncoder().fit_transform(X=X_train)
 X_train_encoded = pd.DataFrame(data=X_train_encoded, columns=X_train.columns)
@@ -58,16 +60,18 @@ X_train_encoded = pd.DataFrame(data=X_train_encoded, columns=X_train.columns)
 X_test_encoded = OrdinalEncoder().fit_transform(X=X_test)
 X_test_encoded = pd.DataFrame(data=X_test_encoded, columns=X_train.columns)
 
-print('encoded dataframes...')
+print('encoded dataframes')
 # clf = RandomForestClassifier(n_estimators=1200, min_samples_split=2, min_samples_leaf=2, max_features='sqrt',
 #                             max_depth=20, bootstrap=True)
+print('fitting model...')
 clf = RandomForestClassifier()
-print('fitting classifier...')
 clf.fit(X_train_encoded, y_train)
-print('classifier fitted...')
+print('classifier fitted')
 print(clf.score(X_test_encoded, y_test))
 y_pred = clf.predict(X_test_encoded)
 print(classification_report(y_test, y_pred))
+
+
 
 # # Number of trees in random forest
 # n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
